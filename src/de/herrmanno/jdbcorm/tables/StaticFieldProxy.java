@@ -4,16 +4,20 @@ import de.herrmanno.jdbcorm.annotations.Autoincrement;
 import de.herrmanno.jdbcorm.annotations.Field;
 import de.herrmanno.jdbcorm.annotations.PrimaryKey;
 
-public class FieldProxy {
+public class StaticFieldProxy {
+
+	protected java.lang.reflect.Field field;
 	
 	String name = null;
 	Class<?> type;
-	Object value = null;
 	String annotation = null;
 	Boolean isPrimaryKey = false;
 	Boolean isAutoIncrement = false;
-
-	public FieldProxy(Object object, java.lang.reflect.Field field) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
+	
+	
+	public StaticFieldProxy(java.lang.reflect.Field field) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
+		this.field = field;
+		
 		if(!field.isAccessible())
 			field.setAccessible(true);
 		
@@ -21,7 +25,6 @@ public class FieldProxy {
 		
 		this.type = field.getType();
 		
-		this.value = field.get(object);
 		
 		Field fieldAnn = field.getAnnotation(Field.class);
 		this.annotation = fieldAnn != null ? fieldAnn.value() : null;
@@ -33,7 +36,8 @@ public class FieldProxy {
 		this.isPrimaryKey = pkAnn != null ? true : false;
 		
 	}
-	
+
+
 	public String getSQLType() throws Exception {
 		if(type == int.class || type == Integer.class)
 			return "INT(11)";
@@ -45,17 +49,4 @@ public class FieldProxy {
 		else
 			throw new Exception("Invalid Type"); //TODO Custom exception
 	}
-
-	public Object getSQLValue() throws Exception {
-		if(type == int.class || type == Integer.class)
-			return value;
-		if(type == long.class || type == Long.class)
-			return value;
-		else if(type == String.class)
-			return "'" + value + "'";
-		
-		else
-			throw new Exception("Invalid Type"); //TODO Custom exception
-	}
-
 }
