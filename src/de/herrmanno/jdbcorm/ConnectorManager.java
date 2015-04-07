@@ -4,6 +4,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import de.herrmanno.jdbcorm.conf.Conf;
+import de.herrmanno.jdbcorm.exceptions.NoConfigDefinedException;
+
 public class ConnectorManager {
 
 	static private Conf conf;
@@ -12,10 +15,9 @@ public class ConnectorManager {
 		ConnectorManager.conf = conf;
 	} 
 	
-	static public Connection getConnection() throws SQLException, ClassNotFoundException {
+	static public Connection getConnection() throws SQLException, ClassNotFoundException, NoConfigDefinedException {
 		if(conf == null) {
-			//TODO custom Exception
-			throw new NullPointerException();
+			throw new NoConfigDefinedException();
 		}
 		
 		Class.forName(conf.getDriverClass());
@@ -24,5 +26,9 @@ public class ConnectorManager {
 		return conn;
 		
 		
+	}
+
+	public static Conf getConf() {
+		return conf;
 	}
 }

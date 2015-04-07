@@ -3,6 +3,7 @@ package de.herrmanno.jdbcorm.tables;
 import de.herrmanno.jdbcorm.annotations.Autoincrement;
 import de.herrmanno.jdbcorm.annotations.Field;
 import de.herrmanno.jdbcorm.annotations.PrimaryKey;
+import de.herrmanno.jdbcorm.exceptions.UnsupportedFieldTypeException;
 
 public class StaticFieldProxy {
 
@@ -38,7 +39,27 @@ public class StaticFieldProxy {
 	}
 
 
-	public String getSQLType() throws Exception {
+	public String getName() {
+		return name;
+	}
+
+
+	public String getAnnotation() {
+		return annotation;
+	}
+
+
+	public Boolean getIsPrimaryKey() {
+		return isPrimaryKey;
+	}
+
+
+	public Boolean getIsAutoIncrement() {
+		return isAutoIncrement;
+	}
+
+
+	public String getSQLType() throws UnsupportedFieldTypeException  {
 		if(type == int.class || type == Integer.class)
 			return "INT(11)";
 		if(type == long.class || type == Long.class)
@@ -47,6 +68,6 @@ public class StaticFieldProxy {
 			return "VARCHAR(256)";
 		
 		else
-			throw new Exception("Invalid Type"); //TODO Custom exception
+			throw new UnsupportedFieldTypeException();
 	}
 }
