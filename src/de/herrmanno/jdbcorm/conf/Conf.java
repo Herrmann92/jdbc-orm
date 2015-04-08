@@ -1,7 +1,8 @@
 package de.herrmanno.jdbcorm.conf;
 
-import de.herrmanno.jdbcorm.constants.MigrationType;
-import de.herrmanno.jdbcorm.querybuilder.QueryBuilder;
+import de.herrmanno.jdbcorm.migrationhelper.MigrationHelper;
+import de.herrmanno.jdbcorm.queryhelper.QueryHelper;
+import de.herrmanno.jdbcorm.typehelper.TypeHelper;
 
 public /*abstract class*/ interface Conf {
 
@@ -9,8 +10,10 @@ public /*abstract class*/ interface Conf {
 	
 	abstract public String getConnectionString();
 	
-	public QueryBuilder getQueryBuilder();
+	public QueryHelper getQueryHelper();
 	
-	public MigrationType getMigrationType();
+	public TypeHelper getTypeHelper();
+	
+	public MigrationHelper getMigrationHelper();
 	
 }

@@ -1,8 +1,10 @@
 package de.herrmanno.jdbcorm.conf.mysql;
 
 import de.herrmanno.jdbcorm.conf.BaseConfig;
-import de.herrmanno.jdbcorm.querybuilder.QueryBuilder;
-import de.herrmanno.jdbcorm.querybuilder.mysql.MySql_QueryBuilder;
+import de.herrmanno.jdbcorm.queryhelper.QueryHelper;
+import de.herrmanno.jdbcorm.queryhelper.mysql.MySql_QueryHelper;
+import de.herrmanno.jdbcorm.typehelper.TypeHelper;
+import de.herrmanno.jdbcorm.typehelper.mysql.MySql_TypeHelper;
 
 public abstract class MySql_Conf extends BaseConfig {
 
@@ -23,8 +25,13 @@ public abstract class MySql_Conf extends BaseConfig {
 	
 	
 	@Override
-	public QueryBuilder getQueryBuilder() {
-		return new MySql_QueryBuilder();
+	public QueryHelper getQueryHelper() {
+		return new MySql_QueryHelper();
+	}
+	
+	@Override
+	public TypeHelper getTypeHelper() {
+		return new MySql_TypeHelper();
 	}
 
 	abstract protected String getHost();

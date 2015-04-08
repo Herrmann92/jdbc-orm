@@ -1,9 +1,10 @@
 package de.herrmanno.jdbcorm.tables;
 
-import de.herrmanno.jdbcorm.annotations.Autoincrement;
 import de.herrmanno.jdbcorm.annotations.Field;
-import de.herrmanno.jdbcorm.annotations.PrimaryKey;
-import de.herrmanno.jdbcorm.exceptions.UnsupportedFieldTypeException;
+import de.herrmanno.jdbcorm.annotations.ForeignKey;
+import de.herrmanno.jdbcorm.annotations.References;
+import de.herrmanno.jdbcorm.constants.CascadeType;
+import de.herrmanno.jdbcorm.constants.Constraint;
 
 public class StaticFieldProxy {
 
@@ -11,9 +12,16 @@ public class StaticFieldProxy {
 	
 	String name = null;
 	Class<?> type;
-	String annotation = null;
+	Constraint[] annotation = null;
 	Boolean isPrimaryKey = false;
 	Boolean isAutoIncrement = false;
+	Boolean isNotNull = false;
+	
+	References rfAnn;
+
+	ForeignKey fkAnn;
+	
+
 	
 	
 	public StaticFieldProxy(java.lang.reflect.Field field) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
@@ -30,44 +38,68 @@ public class StaticFieldProxy {
 		Field fieldAnn = field.getAnnotation(Field.class);
 		this.annotation = fieldAnn != null ? fieldAnn.value() : null;
 		
-		Autoincrement aiAnn = field.getAnnotation(de.herrmanno.jdbcorm.annotations.Autoincrement.class);
-		this.isAutoIncrement = aiAnn != null ? true : false;
 		
-		PrimaryKey pkAnn = field.getAnnotation(de.herrmanno.jdbcorm.annotations.PrimaryKey.class);
-		this.isPrimaryKey = pkAnn != null ? true : false;
+		for(Constraint c : annotation) {
+			if(c == Constraint.PRIMARY_KEY) isPrimaryKey = true;
+			if(c == Constraint.AUTO_INCREMENT) isAutoIncrement = true;
+			if(c == Constraint.NOT_NULL) isNotNull = true;
+		}
+		
+		this.fkAnn = field.getAnnotation(ForeignKey.class); 
+		
+		this.rfAnn = field.getAnnotation(References.class);
+		
 		
 	}
 
+
+	public Class getType() {
+		return type;
+	}
 
 	public String getName() {
 		return name;
 	}
 
-
-	public String getAnnotation() {
-		return annotation;
-	}
-
-
 	public Boolean getIsPrimaryKey() {
 		return isPrimaryKey;
 	}
-
 
 	public Boolean getIsAutoIncrement() {
 		return isAutoIncrement;
 	}
 
-
-	public String getSQLType() throws UnsupportedFieldTypeException  {
-		if(type == int.class || type == Integer.class)
-			return "INT(11)";
-		if(type == long.class || type == Long.class)
-			return "INT(11)";
-		else if(type == String.class)
-			return "VARCHAR(256)";
-		
-		else
-			throw new UnsupportedFieldTypeException();
+	public boolean getIsNotNull() {
+		return isNotNull;
 	}
+
+
+	public Boolean getIsForeignKey() {
+		return fkAnn != null;
+	}
+	
+	public CascadeType getOnDeleteType() {
+		return fkAnn != null ? fkAnn.OnDelete() : null;
+	}
+	
+	public CascadeType getOnUpdateType() {
+		return fkAnn != null ? fkAnn.OnUpdate() : null;
+	}
+	
+	public Boolean getIsReference() {
+		return rfAnn != null;
+	}
+	
+	public Class<?> getReferenceClass() {
+		return rfAnn != null ? rfAnn.Entity() : null;
+	}
+	
+	public String getReferenceFieldName() {
+		return rfAnn != null ? rfAnn.Field() : null;
+	}
+	
+	
+
+
+
 }

@@ -1,6 +1,5 @@
 package de.herrmanno.jdbcorm.tables;
 
-import de.herrmanno.jdbcorm.exceptions.UnsupportedFieldTypeException;
 
 
 public class ObjectFieldProxy extends StaticFieldProxy {
@@ -16,20 +15,13 @@ public class ObjectFieldProxy extends StaticFieldProxy {
 		this.value = field.get(object);
 	}
 	
-	public Object getSQLValue() throws UnsupportedFieldTypeException  {
-		if(type == int.class || type == Integer.class)
-			return value;
-		if(type == long.class || type == Long.class)
-			return value;
-		else if(type == String.class)
-			return "'" + value + "'";
-		
-		else
-			throw new UnsupportedFieldTypeException();
+	public Object getValue() {
+		return value;
 	}
 	
 	void setValue(Object value) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
 		this.field.set(this.object, value);
+		this.value = value;
 	}
 	
 }

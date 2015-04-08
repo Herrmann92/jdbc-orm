@@ -6,8 +6,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import de.herrmanno.jdbcorm.tables.Entity;
+
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 @Target(ElementType.FIELD)
-public @interface Autoincrement {
+public @interface References {
+	Class<? extends Entity> Entity();
+	String Field();
 }

@@ -2,11 +2,13 @@ package de.herrmanno.jdbcorm.tables;
 
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import de.herrmanno.jdbcorm.exceptions.EmptyResultSetException;
 import de.herrmanno.jdbcorm.exceptions.MultiplePrimaryKeysFoundException;
 import de.herrmanno.jdbcorm.exceptions.NoPrimaryKeyFoundException;
 
@@ -15,6 +17,10 @@ public class EntityHelper {
 	/*
 	 * Static-based Methods
 	 */
+	
+	public static String getTableName(Class<? extends Entity> clazz) {
+		return clazz.getSimpleName();
+	}
 	
 	public static List<StaticFieldProxy> getFields(Class<? extends Entity> clazz) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
 		List<StaticFieldProxy> fields = new ArrayList<StaticFieldProxy>();
@@ -53,28 +59,57 @@ public class EntityHelper {
 			throw new NoPrimaryKeyFoundException();
 	}
 	
-	static void populateEntity(Entity e, ResultSet rs) throws EmptyResultSetException, IllegalArgumentException, IllegalAccessException, InstantiationException, NoSuchFieldException, SecurityException, SQLException {
-		if(!rs.next())
-			throw new EmptyResultSetException();
+	static void populateEntity(Entity e, ResultSet rs) throws Exception {
 		
 		
 		List<ObjectFieldProxy> fields = getFields(e);
 		for(ObjectFieldProxy fp : fields) {
-			fp.setValue(rs.getObject(fp.name));
+			//------- List Reference
+			if(fp.getIsReference()) {
+				fp.setValue(createEmptyCollection(fp.getReferenceClass()));
+			//------- Single Reference or ForeignKey
+			} else if(Entity.class.isAssignableFrom(fp.getType())) {
+				if(rs.getObject(fp.name) != null) {
+					Entity refE = (Entity) fp.getType().newInstance();
+					refE.setId(rs.getLong(fp.name));
+					fp.setValue(refE);
+				}
+			} else {
+				fp.setValue(rs.getObject(fp.name));
+			}
 		}
+		e.isNew = false;
 	}
 	
-	static public <T extends Entity> List<T> createEntityList(Class<T> clazz, ResultSet rs) throws SQLException, InstantiationException, IllegalAccessException, IllegalArgumentException, NoSuchFieldException, SecurityException {
+	static private <T> Collection<T> createEmptyCollection(Class<T> clazz) {
+		return new ArrayList<T>();
+	}
+	
+	static public <T extends Entity> List<T> createEntityList(Class<T> clazz, ResultSet rs) throws Exception {
 		List<T> list = new ArrayList<T>();
+		
 		while(rs.next()) {
 			T instance = clazz.newInstance();
+			
+			instance.beforeLoad();
+			
+			
+			EntityHelper.populateEntity(instance, rs);
+			/*
 			List<ObjectFieldProxy> fields = getFields(instance);
 			for(ObjectFieldProxy fp : fields) {
 				fp.setValue(rs.getObject(fp.name));
 			}
+			*/
 			list.add(instance);
+			
+			instance.afterLoad();
 		}
 		return list;
+	}
+	
+	public static List<StaticFieldProxy> getSingleReferencedFields(Class<? extends Entity> clazz) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
+		return getFields(clazz).stream().filter((fp) -> fp.getIsForeignKey()).collect(Collectors.toList());
 	}
 	
 	/*
@@ -94,6 +129,16 @@ public class EntityHelper {
 		throw new NoPrimaryKeyFoundException();
 	}
 	
+	public static List<Entity> getSingleReferencedEntities(Entity e) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
+		List<Entity> fields = getFields(e)
+				.stream()
+				.filter((fp) -> Entity.class.isAssignableFrom(fp.getType()))
+				.map((fp) -> (Entity)fp.getValue())
+				.collect(Collectors.toList());
+		
+		return fields;
+	}
+	
 	public static String toString(Entity e) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
 		List<ObjectFieldProxy> fields = getFields(e);
 		StringBuilder sb = new StringBuilder();
@@ -102,9 +147,11 @@ public class EntityHelper {
 			sb.append(" - ");
 			sb.append(fp.value != null ? fp.value : "NULL");
 			sb.append("\t [");
-			sb.append(fp.isPrimaryKey ? "PK " : "");
-			sb.append(fp.isAutoIncrement ? "AI " : "");
-			sb.append(fp.annotation != null ? fp.annotation : "");
+			for(int c = 0; c < fp.annotation.length; c++) {
+				sb.append(fp.annotation[c].toString());
+				if(c + 1 < fp.annotation.length)
+					sb.append(", ");
+			}
 			sb.append("]");
 			sb.append("\n");
 		}
