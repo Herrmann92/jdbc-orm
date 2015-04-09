@@ -5,6 +5,7 @@ import de.herrmanno.jdbcorm.constants.CascadeType;
 import de.herrmanno.jdbcorm.exceptions.MultiplePrimaryKeysFoundException;
 import de.herrmanno.jdbcorm.exceptions.NoPrimaryKeyFoundException;
 import de.herrmanno.jdbcorm.tables.Entity;
+import de.herrmanno.jdbcorm.tables.JoinTable;
 import de.herrmanno.jdbcorm.typehelper.TypeHelper;
 
 public abstract class QueryHelper {
@@ -15,6 +16,8 @@ public abstract class QueryHelper {
 	
 	public abstract String getCreateScript(Class<? extends Entity> c) throws Exception;
 	
+	public abstract String getCreateScript(JoinTable jt) throws Exception;
+	
 	public abstract String getSaveScript(Entity e) throws Exception;
 	
 	public abstract String getUpdateScript(Entity e) throws Exception;
@@ -22,6 +25,8 @@ public abstract class QueryHelper {
 	public abstract String getDeleteScript(Entity e) throws Exception;
 	
 	public abstract String getDropTableScriptScript(Class<? extends Entity> c) throws Exception;
+	
+	public abstract String getDropTableScriptScript(JoinTable jt) throws Exception;
 	
 	public abstract String getDeleteScript(Class<? extends Entity> c) throws Exception;
 	

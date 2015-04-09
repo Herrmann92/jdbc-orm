@@ -25,6 +25,7 @@ public abstract class Entity {
 	@Field
 	private Date updatedAt = null;
 	
+	
 	public long getId() {
 		return this.id;
 	}

@@ -5,14 +5,17 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import de.herrmanno.jdbcorm.ConnectorManager;
 import de.herrmanno.jdbcorm.exceptions.NoConfigDefinedException;
 import de.herrmanno.jdbcorm.tables.Entity;
 import de.herrmanno.jdbcorm.tables.EntityHelper;
+import de.herrmanno.jdbcorm.tables.JoinTable;
 import de.herrmanno.jdbcorm.tables.StaticFieldProxy;
 import de.herrmanno.jdbcorm.util.ClassFinder;
 
@@ -27,6 +30,7 @@ public abstract class MigrationHelper {
 		}
 		
 		List<Class<?>> migratedClasses = new ArrayList<Class<?>>();
+		Set<JoinTable> joinTables = new HashSet<JoinTable>();
 		
 		try(Connection conn = ConnectorManager.getConnection()) {
 			try {
@@ -39,9 +43,13 @@ public abstract class MigrationHelper {
 					
 					//------- Check if there are ForeinKeyField, which Classes aren't migrated yet
 					boolean doLater = false;
-					for(StaticFieldProxy refFp : EntityHelper.getSingleReferencedFields(c)) {
+					for(StaticFieldProxy refFp : EntityHelper.getForeignKeyFields(c)) {
 						if(!migratedClasses.contains(refFp.getType()))
 							doLater = true;
+						
+						if(refFp.getIsJoinReference()) {
+							joinTables.add(new JoinTable(refFp));
+						}
 					}
 					
 					if(doLater) {
@@ -49,9 +57,14 @@ public abstract class MigrationHelper {
 						continue;
 					}
 					
+					
 					//TODO create stbl from references here and insert into Queue
 					migrate(conn, c);
 					migratedClasses.add(c);
+				}
+				
+				for(JoinTable jt : joinTables) {
+					migrate(conn, jt);
 				}
 				
 				conn.commit();
@@ -78,5 +91,7 @@ public abstract class MigrationHelper {
 	}
 	
 	protected abstract void migrate(Connection conn, Class<? extends Entity> c) throws Exception;
+	
+	protected abstract void migrate(Connection conn, JoinTable jt) throws Exception;
 	
 }

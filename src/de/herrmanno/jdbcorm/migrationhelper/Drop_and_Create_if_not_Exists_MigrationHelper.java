@@ -4,13 +4,16 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 import de.herrmanno.jdbcorm.ConnectorManager;
 import de.herrmanno.jdbcorm.conf.Conf;
 import de.herrmanno.jdbcorm.tables.Entity;
 import de.herrmanno.jdbcorm.tables.EntityHelper;
+import de.herrmanno.jdbcorm.tables.JoinTable;
 import de.herrmanno.jdbcorm.tables.StaticFieldProxy;
 
 public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelper {
@@ -27,6 +30,7 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 		
 		List<Class<?>> migratedClasses = new ArrayList<Class<?>>();
 		List<Class<?>> droppedClasses = new ArrayList<Class<?>>();
+		Set<JoinTable> joinTables = new HashSet<JoinTable>();
 		
 		try(Connection conn = ConnectorManager.getConnection()) {
 			try {
@@ -42,9 +46,16 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 					//------- Check if there are ForeinKeyField, which aren't dropped yet
 					boolean doLater = false;
 					for(Class<? extends Entity> otherClass : classesDrop) {
-						for(StaticFieldProxy refFp : EntityHelper.getSingleReferencedFields(otherClass)) {
-							if(refFp.getType() == c)
+						for(StaticFieldProxy refFp : EntityHelper.getFields(otherClass)) {
+							if(refFp.getIsForeignKey() && refFp.getType() == c) {
 								doLater = true;
+							}
+							if(refFp.getIsJoinReference()) {
+								JoinTable jt = new JoinTable(refFp);
+								if(!joinTables.contains(jt))
+									drop(conn, jt);
+								joinTables.add(jt);
+							}
 						}
 					}
 					
@@ -59,6 +70,7 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 					droppedClasses.add(c);
 				}
 				
+				
 				//------- Then Migrate
 				while(classesCreate.peek() != null) {
 				
@@ -66,9 +78,15 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 					
 					//------- Check if there are ForeinKeyField, which Classes aren't migrated yet
 					boolean doLater = false;
-					for(StaticFieldProxy refFp : EntityHelper.getSingleReferencedFields(c)) {
-						if(!migratedClasses.contains(refFp.getType()))
+					for(StaticFieldProxy refFp : EntityHelper.getFields(c)) {
+						if(refFp.getIsForeignKey() && refFp.getType() == c) {
 							doLater = true;
+						}
+						/*
+						if(refFp.getIsJoinReference()) {
+							joinTables.add(new JoinTable(refFp));
+						}
+						*/
 					}
 					
 					if(doLater) {
@@ -81,8 +99,13 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 					migratedClasses.add(c);
 				}
 				
+				for (JoinTable jt : joinTables) {
+					create(conn, jt);
+				}
+				
 				conn.commit();
 			} catch(Exception e) {
+				e.printStackTrace();
 				conn.rollback();
 			}
 		}
@@ -96,6 +119,32 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 		create(conn, c);
 	}
 	
+	@Override
+	protected void migrate(Connection conn, JoinTable jt) throws Exception {
+		drop(conn, jt);
+		create(conn, jt);
+	}
+
+
+
+	private void create(Connection conn, Class<? extends Entity> c)throws Exception {
+		Conf conf = ConnectorManager.getConf();
+		Statement stmt = conn.createStatement();
+		
+		String createsql = conf.getQueryHelper().getCreateScript(c);
+		stmt.execute(createsql);
+	}
+	
+	private void create(Connection conn, JoinTable jt)throws Exception {
+		Conf conf = ConnectorManager.getConf();
+		Statement stmt = conn.createStatement();
+		
+		String createsql = conf.getQueryHelper().getCreateScript(jt);
+		stmt.execute(createsql);
+	}
+
+
+
 	private void drop(Connection conn, Class<? extends Entity> c)throws Exception {
 		Conf conf = ConnectorManager.getConf();
 		Statement stmt = conn.createStatement();
@@ -104,12 +153,12 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 		stmt.execute(dropsql);
 	}
 	
-	private void create(Connection conn, Class<? extends Entity> c)throws Exception {
+	private void drop(Connection conn, JoinTable jt)throws Exception {
 		Conf conf = ConnectorManager.getConf();
 		Statement stmt = conn.createStatement();
 		
-		String createsql = conf.getQueryHelper().getCreateScript(c);
-		stmt.execute(createsql);
+		String dropsql = conf.getQueryHelper().getDropTableScriptScript(jt);
+		stmt.execute(dropsql);
 	}
 
 }

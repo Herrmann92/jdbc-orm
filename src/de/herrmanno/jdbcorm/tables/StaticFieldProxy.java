@@ -51,8 +51,14 @@ public class StaticFieldProxy {
 		
 		
 	}
+	
+	@SuppressWarnings("unchecked")
+	public Class<? extends Entity> getDeclaringClass() {
+		return (Class<? extends Entity>) field.getDeclaringClass();
+	}
 
 
+	@SuppressWarnings("rawtypes")
 	public Class getType() {
 		return type;
 	}
@@ -90,12 +96,20 @@ public class StaticFieldProxy {
 		return rfAnn != null;
 	}
 	
-	public Class<?> getReferenceClass() {
+	public Class<? extends Entity> getReferenceClass() {
 		return rfAnn != null ? rfAnn.Entity() : null;
 	}
 	
 	public String getReferenceFieldName() {
 		return rfAnn != null ? rfAnn.Field() : null;
+	}
+	
+	public Boolean getIsJoinReference() throws Exception {
+		if(rfAnn == null)
+			return false;
+		StaticFieldProxy field = EntityHelper.getFieldByName(getReferenceClass(), getReferenceFieldName());
+		return field.getIsReference();
+		
 	}
 	
 	

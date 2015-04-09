@@ -1,12 +1,8 @@
 package de.herrmanno.jdbcorm.tables;
 
 import java.lang.reflect.Field;
-import java.sql.ResultSet;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import de.herrmanno.jdbcorm.exceptions.MultiplePrimaryKeysFoundException;
@@ -33,11 +29,18 @@ public class EntityHelper {
 			fields.add(new StaticFieldProxy(field));
 		}
 		
+		@SuppressWarnings("unchecked")
 		Class<? extends Entity> superClass = (Class<? extends Entity>) clazz.getSuperclass();
 		if(superClass != null)
 			fields.addAll(getFields(superClass));
 		
 		return fields;
+	}
+	
+	public static StaticFieldProxy getFieldByName(Class<? extends Entity> clazz, String name) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
+		List<StaticFieldProxy> fields = getFields(clazz);
+		
+		return fields.stream().filter((fp) -> fp.name.equals(name)).findFirst().get();
 	}
 	
 	public static StaticFieldProxy getPKFieldProxy(Class<? extends Entity> clazz) throws NoPrimaryKeyFoundException, IllegalArgumentException, IllegalAccessException, InstantiationException, MultiplePrimaryKeysFoundException {
@@ -59,6 +62,7 @@ public class EntityHelper {
 			throw new NoPrimaryKeyFoundException();
 	}
 	
+	/*
 	static void populateEntity(Entity e, ResultSet rs) throws Exception {
 		
 		
@@ -80,11 +84,15 @@ public class EntityHelper {
 		}
 		e.isNew = false;
 	}
+	*/
 	
+	/*
 	static private <T> Collection<T> createEmptyCollection(Class<T> clazz) {
 		return new ArrayList<T>();
 	}
+	*/
 	
+	/*
 	static public <T extends Entity> List<T> createEntityList(Class<T> clazz, ResultSet rs) throws Exception {
 		List<T> list = new ArrayList<T>();
 		
@@ -95,20 +103,16 @@ public class EntityHelper {
 			
 			
 			EntityHelper.populateEntity(instance, rs);
-			/*
-			List<ObjectFieldProxy> fields = getFields(instance);
-			for(ObjectFieldProxy fp : fields) {
-				fp.setValue(rs.getObject(fp.name));
-			}
-			*/
+			
 			list.add(instance);
 			
 			instance.afterLoad();
 		}
 		return list;
 	}
+	*/
 	
-	public static List<StaticFieldProxy> getSingleReferencedFields(Class<? extends Entity> clazz) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
+	public static List<StaticFieldProxy> getForeignKeyFields(Class<? extends Entity> clazz) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
 		return getFields(clazz).stream().filter((fp) -> fp.getIsForeignKey()).collect(Collectors.toList());
 	}
 	
@@ -139,6 +143,7 @@ public class EntityHelper {
 		return fields;
 	}
 	
+	/*
 	public static String toString(Entity e) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
 		List<ObjectFieldProxy> fields = getFields(e);
 		StringBuilder sb = new StringBuilder();
@@ -157,6 +162,7 @@ public class EntityHelper {
 		}
 		return sb.toString();
 	}
+	*/
 	
 	/*
 	 * Object-based Helper-Methods
@@ -173,6 +179,7 @@ public class EntityHelper {
 			fields.add(new ObjectFieldProxy(entity, field));
 		}
 		
+		@SuppressWarnings("unchecked")
 		Class<? extends Entity> superClass = (Class<? extends Entity>) clazz.getSuperclass();
 		if(superClass != null)
 			fields.addAll(getFields(superClass, entity));

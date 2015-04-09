@@ -3,8 +3,10 @@ package de.herrmanno.jdbcorm.queryhelper;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.herrmanno.jdbcorm.constants.CascadeType;
 import de.herrmanno.jdbcorm.tables.Entity;
 import de.herrmanno.jdbcorm.tables.EntityHelper;
+import de.herrmanno.jdbcorm.tables.JoinTable;
 import de.herrmanno.jdbcorm.tables.ObjectFieldProxy;
 import de.herrmanno.jdbcorm.tables.StaticFieldProxy;
 
@@ -14,6 +16,32 @@ public abstract class SQL_QueryHelper extends QueryHelper {
 	@Override
 	public String getCreateScript(Class<? extends Entity> c) throws Exception {
 		return create_if_not_exsist_script(c);
+	}
+	
+	@Override
+	public String getCreateScript(JoinTable jt) throws Exception {
+		StringBuilder sb = new StringBuilder();
+		sb.append("CREATE TABLE IF NOT EXISTS ");
+		sb.append("`" + jt.getTableName() + "`");
+		sb.append(" (");
+		
+		StaticFieldProxy[] fieldProxies = jt.getFieldProxies();
+		for(int f = 0; f < fieldProxies.length; f++) {
+			StaticFieldProxy fp = fieldProxies[f];
+			sb.append(fp.getDeclaringClass().getSimpleName() + "_" + fp.getName() + " ");
+			sb.append(getTypeHelper().getSQLType(fp.getDeclaringClass()) + " ");
+			sb.append(", ");
+		}
+		for(int f = 0; f < fieldProxies.length; f++) {
+			StaticFieldProxy fp = fieldProxies[f];
+			sb.append(getForeignKeyInlineSQL(fp.getName(), fp.getReferenceClass(), CascadeType.CASCADE, CascadeType.CASCADE));
+			if(f+1 < fieldProxies.length) {
+				sb.append(", ");
+			}
+		}
+		sb.append(" )");
+		
+		return sb.toString();
 	}
 
 	protected String create_if_not_exsist_script(Class<? extends Entity> c) throws Exception {
@@ -157,6 +185,15 @@ public abstract class SQL_QueryHelper extends QueryHelper {
 		StringBuilder sb = new StringBuilder();
 		sb.append("DROP TABLE IF EXISTS ");
 		sb.append(EntityHelper.getTableName(c) + " ");
+		
+		return sb.toString();
+	}
+	
+	@Override
+	public String getDropTableScriptScript(JoinTable jt) throws Exception {
+		StringBuilder sb = new StringBuilder();
+		sb.append("DROP TABLE IF EXISTS ");
+		sb.append(jt.getTableName() + " ");
 		
 		return sb.toString();
 	}
