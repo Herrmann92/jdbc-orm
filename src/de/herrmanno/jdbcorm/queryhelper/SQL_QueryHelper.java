@@ -28,13 +28,13 @@ public abstract class SQL_QueryHelper extends QueryHelper {
 		StaticFieldProxy[] fieldProxies = jt.getFieldProxies();
 		for(int f = 0; f < fieldProxies.length; f++) {
 			StaticFieldProxy fp = fieldProxies[f];
-			sb.append(fp.getDeclaringClass().getSimpleName() + "_" + fp.getName() + " ");
+			sb.append(jt.getColumnName(fp) + " ");
 			sb.append(getTypeHelper().getSQLType(fp.getDeclaringClass()) + " ");
 			sb.append(", ");
 		}
 		for(int f = 0; f < fieldProxies.length; f++) {
 			StaticFieldProxy fp = fieldProxies[f];
-			sb.append(getForeignKeyInlineSQL(fp.getName(), fp.getReferenceClass(), CascadeType.CASCADE, CascadeType.CASCADE));
+			sb.append(getForeignKeySQL(jt.getColumnName(fp), fp.getReferenceClass(), CascadeType.CASCADE, CascadeType.CASCADE));
 			if(f+1 < fieldProxies.length) {
 				sb.append(", ");
 			}
@@ -44,6 +44,7 @@ public abstract class SQL_QueryHelper extends QueryHelper {
 		return sb.toString();
 	}
 
+	@SuppressWarnings("unchecked")
 	protected String create_if_not_exsist_script(Class<? extends Entity> c) throws Exception {
 		List<String> fkScripts = new ArrayList<String>();
 		
@@ -57,7 +58,7 @@ public abstract class SQL_QueryHelper extends QueryHelper {
 			
 			StaticFieldProxy fp = fields.get(f);
 			
-			//-------- leave out References
+			//-------- leave out References (One-to-Many and Many-to-Many)
 			if(fp.getIsReference()) {
 				continue;
 			}
@@ -70,9 +71,11 @@ public abstract class SQL_QueryHelper extends QueryHelper {
 			if(f+1 < fields.size())
 				sb.append(",");
 			
+			/*
 			if(fp.getIsForeignKey()) {
 				fkScripts.add(getForeignKeyInlineSQL(fp.getName(), fp.getType(), fp.getOnDeleteType(), fp.getOnUpdateType()));
 			}
+			*/
 		}
 		
 		for(String fkScript : fkScripts) {
@@ -115,6 +118,26 @@ public abstract class SQL_QueryHelper extends QueryHelper {
 			if(f+1 < fields.size())
 				sb.append(",");
 		}
+		
+		sb.append(");");
+		
+		return sb.toString();
+	}
+	
+	@Override
+	public String getSaveScript(JoinTable jt, ObjectFieldProxy fp1, ObjectFieldProxy fp2) throws Exception {
+		StringBuilder sb = new StringBuilder();
+		sb.append("INSERT INTO ");
+		sb.append("`" + jt.getTableName() + "`");
+		sb.append(" (");
+		sb.append(jt.getColumnName(fp1) + ",");
+		sb.append(jt.getColumnName(fp2));
+		sb.append(")");
+		
+		sb.append(" VALUES (");
+		
+		sb.append(fp2.getEntityID() + ",");
+		sb.append(fp1.getEntityID());		
 		
 		sb.append(");");
 		
@@ -176,6 +199,19 @@ public abstract class SQL_QueryHelper extends QueryHelper {
 			sb.append("WHERE ");
 			sb.append(where);
 		}
+		
+		return sb.toString();
+	}
+	
+	@Override
+	public String getDeleteScript(JoinTable jt, ObjectFieldProxy fp1, ObjectFieldProxy fp2) throws Exception {
+		StringBuilder sb = new StringBuilder();
+		sb.append("DELETE FROM ");
+		sb.append(jt.getTableName() + " ");
+		sb.append("WHERE ");
+		sb.append(jt.getColumnName(fp1) + "=" + fp2.getEntityID());
+		sb.append(" AND ");
+		sb.append(jt.getColumnName(fp2) + "=" + fp1.getEntityID());
 		
 		return sb.toString();
 	}

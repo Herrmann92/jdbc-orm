@@ -1,4 +1,4 @@
-package de.herrmanno.jdbcorm.migrationhelper;
+package de.herrmanno.jdbcorm.migrationhelper.v1;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -16,6 +16,7 @@ import de.herrmanno.jdbcorm.tables.EntityHelper;
 import de.herrmanno.jdbcorm.tables.JoinTable;
 import de.herrmanno.jdbcorm.tables.StaticFieldProxy;
 
+@Deprecated
 public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelper {
 
 	@Override
@@ -28,8 +29,8 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 			classesCreate.add((Class<? extends Entity>) c);
 		}
 		
-		List<Class<?>> migratedClasses = new ArrayList<Class<?>>();
-		List<Class<?>> droppedClasses = new ArrayList<Class<?>>();
+		List<Class<? extends Entity>> migratedClasses = new ArrayList<Class<? extends Entity>>();
+		List<Class<? extends Entity>> droppedClasses = new ArrayList<Class<? extends Entity>>();
 		Set<JoinTable> joinTables = new HashSet<JoinTable>();
 		
 		try(Connection conn = ConnectorManager.getConnection()) {
@@ -37,12 +38,37 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 				
 				conn.setAutoCommit(false);
 				
+				
+				//------- Get all JoinTables
+				for(Class<? extends Entity> clazz : classesDrop) {
+					for(StaticFieldProxy refFp : EntityHelper.getFields(clazz)) {
+						if(refFp.getIsJoinReference()) {
+							JoinTable jt = new JoinTable(refFp);
+							joinTables.add(jt);
+						}
+					}
+				}
+				
+				//------- Drop all JoinTables
+				for(JoinTable jt : joinTables) {
+					drop(conn,  jt);
+				}
+				
+				
+				//------- Drop all ForeignKeys
+				for(Class<? extends Entity> c : classesDrop) {
+					for(StaticFieldProxy fkField : EntityHelper.getForeignKeyFields(c)) {
+						dropForeignKey(conn, fkField);
+					}
+				}
+				
+				
 				//------- Drop first in reversed order
 				while(classesDrop.peek() != null) {
 					
 					Class<? extends Entity> c = classesDrop.poll();
 					
-					
+					/*
 					//------- Check if there are ForeinKeyField, which aren't dropped yet
 					boolean doLater = false;
 					for(Class<? extends Entity> otherClass : classesDrop) {
@@ -62,10 +88,9 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 					if(doLater) {
 						classesDrop.add(c);
 						continue;
-					}
+					}*/
 					
 					
-					//TODO create stbl from references here and insert into Queue
 					drop(conn, c);
 					droppedClasses.add(c);
 				}
@@ -76,29 +101,34 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 				
 					Class<? extends Entity> c = classesCreate.poll();
 					
+					/*
 					//------- Check if there are ForeinKeyField, which Classes aren't migrated yet
 					boolean doLater = false;
 					for(StaticFieldProxy refFp : EntityHelper.getFields(c)) {
-						if(refFp.getIsForeignKey() && refFp.getType() == c) {
+						if(refFp.getIsForeignKey() && !migratedClasses.contains(refFp.getType())) {
 							doLater = true;
 						}
-						/*
-						if(refFp.getIsJoinReference()) {
-							joinTables.add(new JoinTable(refFp));
-						}
-						*/
 					}
 					
 					if(doLater) {
 						classesCreate.add(c);
 						continue;
 					}
+					*/
 					
-					//TODO create stbl from references here and insert into Queue
 					create(conn, c);
 					migratedClasses.add(c);
 				}
 				
+				//------- Create all ForeignKeys
+				for(Class<? extends Entity> c : migratedClasses) {
+					for(StaticFieldProxy fkField : EntityHelper.getForeignKeyFields(c)) {
+						migrateForeignKey(conn, fkField);
+					}
+				}
+				
+				
+				//------- Create all JoinTables
 				for (JoinTable jt : joinTables) {
 					create(conn, jt);
 				}
@@ -123,6 +153,19 @@ public class Drop_and_Create_if_not_Exists_MigrationHelper extends MigrationHelp
 	protected void migrate(Connection conn, JoinTable jt) throws Exception {
 		drop(conn, jt);
 		create(conn, jt);
+	}
+
+
+
+	@Override
+	protected void migrateForeignKey(Connection conn, StaticFieldProxy fkField) throws Exception {
+	}
+
+
+
+	@Override
+	protected void dropForeignKey(Connection conn, StaticFieldProxy fkField)
+			throws Exception {
 	}
 
 

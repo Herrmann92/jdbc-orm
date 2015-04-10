@@ -26,6 +26,16 @@ public abstract class Entity {
 	private Date updatedAt = null;
 	
 	
+	public Entity() {
+		try {
+			for(ObjectFieldProxy refField : EntityHelper.getListReferencedFields(this)) {
+				refField.setValue(ChildList.createEmpty(refField.getReferenceClass()));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public long getId() {
 		return this.id;
 	}
@@ -62,48 +72,7 @@ public abstract class Entity {
 	public void afterSave() {};
 	
 	
-	/*
-	public T load(long id) throws Exception {
-		return super.load("id="+id);
-	}
-	
-	
-	public void save() throws Exception {
-		
-		try(Connection conn = ConnectorManager.getConnection()) {
-			conn.setAutoCommit(false);
-			QueryBuilder queryBuilder = ConnectorManager.getConf().getQueryBuilder();
-			String saveSQL = queryBuilder.getSaveScript(this);
-			String getIdSQL = queryBuilder.getLastIdSelectScript(this.getClass());
-			
-			Statement stmt = conn.createStatement();
-			stmt.execute(saveSQL);
-			ResultSet rs = stmt.executeQuery(getIdSQL);
-			if(!rs.next()) {
-				throw new EmptyResultSetException();
-			} else {
-				ObjectFieldProxy pkFieldProxy = EntityHelper.getPKFieldProxy(this);
-				Object pkValue = rs.getObject(1);
-				pkFieldProxy.setValue(pkValue);
-			}
-			
-			conn.commit();
-		}
-	}
-	
 	@SuppressWarnings("unchecked")
-	public T load(String where) throws Exception {
-		String sql = "SELECT * FROM " + this.getClass().getSimpleName() + " WHERE " + where;
-		try(Connection conn = ConnectorManager.getConnection()) {
-			Statement stmt = conn.createStatement();
-			ResultSet rs = stmt.executeQuery(sql);
-			
-			EntityHelper.populateEntity(this, rs);
-			return (T) this;
-		}
-	}
-	*/
-	
 	@Override
 	public String toString() {
 		
@@ -141,31 +110,6 @@ public abstract class Entity {
 			return "An error occured while invoking 'toString'";
 		}
 		
-		/*
-		try {
-			return EntityHelper.toString(this);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return "An error occured while invoking 'toString'";
-		*/
 	}
 	
-
-	/*
-	private static Entity makeOneFromResultSet(Class<? extends Entity> clazz, ResultSet rs) throws EmptyResultSetException, InstantiationException, IllegalAccessException, IllegalArgumentException, NoSuchFieldException, SecurityException, SQLException {
-		if(!rs.next())
-			throw new EmptyResultSetException();
-		
-		Entity instance = clazz.newInstance();
-		
-		List<ObjectFieldProxy> fields = getFields(instance);
-		for(ObjectFieldProxy fp : fields) {
-			fp.setValue(rs.getObject(fp.name));
-		}
-		
-		return instance;
-	}
-	*/
-
 }

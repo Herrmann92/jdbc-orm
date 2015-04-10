@@ -2,19 +2,23 @@ package de.herrmanno.jdbcorm.tables;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import de.herrmanno.jdbcorm.ConnectorManager;
 import de.herrmanno.jdbcorm.exceptions.EmptyResultSetException;
+import de.herrmanno.jdbcorm.exceptions.NoConfigDefinedException;
 import de.herrmanno.jdbcorm.queryhelper.QueryHelper;
 
 
 public class Handler {
 	
-	//public static boolean saveCascade = true;
+	public static boolean saveCascade = true;
 	private static int defaultDepth = 1;
 	
 	public static void setDefaultLoadingDepth(int d) {
@@ -230,15 +234,38 @@ public class Handler {
 					if(fp.getIsReference()) {
 						//------- Many-to-One Reference - e.g. Field User.Groups, where Group have one(!) User, e.g. owner
 						if(!fp.getIsJoinReference()) {
-							fp.setValue(loadAll( fp.getReferenceClass(), fp.getReferenceFieldName() + "=" + e.getId(), depth-1, loadedEntities));
+							
+							fp.setValue(ChildList.create(loadAll( fp.getReferenceClass(), fp.getReferenceFieldName() + "=" + e.getId() , depth-1, loadedEntities)));
 						}
 						//------- Many-to-Many Reference
 						else {
-							//TODO Join Table Loading !!
+							//------- Retrieve Ids from Join Table
+							List<Long> ids = loadIds(new JoinTable(fp), fp);
+							String where = ids.size() > 0 ? "id IN (" + Arrays.toString(ids.toArray()).replace("[", "").replace("]",  "") + ")" : "1=2";
+							//------- Load referenced Entities by retrieved IDs
+							fp.setValue(ChildList.create(loadAll( fp.getReferenceClass(), where, depth-1, loadedEntities)));
 						}
 					}
 				}
 			}
+		}
+		
+		static List<Long> loadIds(JoinTable jt, ObjectFieldProxy fp) throws ClassNotFoundException, SQLException, NoConfigDefinedException {
+			String sql = "SELECT * FROM " + jt.getTableName() + " WHERE ";
+			sql += jt.getColumnName(jt.getOtherFp(fp)) + "=" + fp.getEntityID();
+			
+			List<Long> ids = new ArrayList<Long>();
+			
+			try(Connection conn = ConnectorManager.getConnection()) {
+				Statement stmt = conn.createStatement();
+				ResultSet rs = stmt.executeQuery(sql);
+				
+				while(rs.next()) {
+					ids.add(rs.getLong(jt.getColumnName(jt.fp2)));
+				}
+			}
+			
+			return ids;
 		}
 		
 		static private <T> Collection<T> createEmptyCollection(Class<T> clazz) {
@@ -248,72 +275,146 @@ public class Handler {
 	
 	
 	private static class Saver {
-		static void save(Entity e) throws Exception {
-			e.beforeSave();
-			e.isSaving = true;
-			if(e.isNew) {
-				_save(e);
-				e.isNew = false;
-			} else {
-				_update(e);
-			}
-			e.isSaving = false;
-			e.afterSave();
-				
-		} 
 		
-		static void _save(Entity e) throws Exception {
+		static void save(Entity e) throws Exception {
 			try(Connection conn = ConnectorManager.getConnection()) {
-				
+				Savepoint savePoint = conn.setSavepoint();
 				conn.setAutoCommit(false);
-				
-				//------- Save references first to retrieve their Ids - qh.getSaveScript may need them!
-				Statement stmt = conn.createStatement();
-				for(Entity refE : EntityHelper.getSingleReferencedEntities(e)) {
-					if(refE == null || refE.isSaving)
-						continue;
-					save(refE);
+				try {
+					save(conn, e);
+					
+					conn.commit();
+				} catch(Exception e1) {
+					e1.printStackTrace();
+					conn.rollback(savePoint);
 				}
-				
-				QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
-				String saveSQL = qh.getSaveScript(e);
-				String getIdSQL = qh.getLastIdSelectScript(e.getClass());
-				
-				stmt.execute(saveSQL);
-				ResultSet rs = stmt.executeQuery(getIdSQL);
-				if(!rs.next()) {
-					throw new EmptyResultSetException();
-				} else {
-					ObjectFieldProxy pkFieldProxy = EntityHelper.getPKFieldProxy(e);
-					Object pkValue = rs.getObject(1);
-					pkFieldProxy.setValue(pkValue);
-				}
-				
-				conn.commit();
-				
 			}
 		}
 		
-		static void _update(Entity e) throws Exception {
-			try(Connection conn = ConnectorManager.getConnection()) {
+		private static void save(Connection conn, Entity e) throws Exception {
+				e.beforeSave();
+				e.isSaving = true;
+				if(e.isNew) {
+					_save(conn, e);
+					e.isNew = false;
+				} else {
+					_update(conn, e);
+				}
+				e.isSaving = false;
+				e.afterSave();
+		} 
+		
+		private static void _save(Connection conn, Entity e) throws Exception {
 				
-				conn.setAutoCommit(false);
+			Statement stmt = conn.createStatement();
+			
+			QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			String saveSQL = qh.getSaveScript(e);
+			String getIdSQL = qh.getLastIdSelectScript(e.getClass());
+			
+			stmt.execute(saveSQL);
+			ResultSet rs = stmt.executeQuery(getIdSQL);
+			if(!rs.next()) {
+				throw new EmptyResultSetException();
+			} else {
+				ObjectFieldProxy pkFieldProxy = EntityHelper.getPKFieldProxy(e);
+				Object pkValue = rs.getObject(1);
+				pkFieldProxy.setValue(pkValue);
+			}
+			
+			saveChildren(conn, e);
 				
-				for(Entity refE : EntityHelper.getSingleReferencedEntities(e)) {
-					if(refE == null || refE.isSaving)
-						continue;
-					save(refE);
+		}
+
+		private static void _update(Connection conn, Entity e) throws Exception {
+								
+			QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			String updateSQL = qh.getUpdateScript(e);
+			
+			Statement stmt = conn.createStatement();
+			stmt.execute(updateSQL);
+			
+			saveChildren(conn, e);
+			
+		}
+
+		private static void saveChildren(Connection conn, Entity e) throws Exception {
+			
+			//------- Save references first to retrieve their Ids - qh.getSaveScript may need them!
+			for(Entity refE : EntityHelper.getSingleReferencedEntities(e)) {
+				if(refE == null || refE.isSaving)
+					continue;
+				save(conn, refE);
+			}
+			
+			for(ObjectFieldProxy refFp : EntityHelper.getListReferencedFields(e)) {
+				
+				ChildList<Entity> refEs = (ChildList<Entity>) refFp.getValue();
+				
+				String referenceFieldName = refFp.getReferenceFieldName();
+				//------- One-to-Many Reference
+				if(!refFp.getIsJoinReference()) {
+					
+					//------- Set Parent Entity as FieldValue for Referenced Entity 
+					for(Entity addedE : refEs.getAdded()) {
+						EntityHelper.getFieldByName(addedE, referenceFieldName).setValue(e);
+						save(conn, addedE);
+					}
+					
+					//------- Set Referenced Entity referenced FieldValue to null 
+					for(Entity addedE : refEs.getRemoved()) {
+						EntityHelper.getFieldByName(addedE, referenceFieldName).setValue(null);
+						save(conn, addedE);
+					}
 				}
 				
-				QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
-				String updateSQL = qh.getUpdateScript(e);
+				//------- Many-to-Many Reference
+				else {
+					
+					JoinTable jt = new JoinTable(refFp);
+					//------- Set Parent Entity as FieldValue for Referenced Entity 
+					for(Entity addedE : refEs.getAdded()) {
+						save(conn, addedE);
+						
+						ObjectFieldProxy reffedFp = EntityHelper.getFieldByName(addedE, refFp.getReferenceFieldName());
+						_insert(conn, jt, refFp, reffedFp);
+						
+					}
+					
+					//------- Set Referenced Entity referenced FieldValue to null 
+					for(Entity addedE : refEs.getRemoved()) {
+						save(conn, addedE);
+						
+						ObjectFieldProxy reffedFp = EntityHelper.getFieldByName(addedE, refFp.getReferenceFieldName());
+						_remove(conn, jt, refFp, reffedFp);
+					}
+				}
 				
+				/*
+				//------- Save all referenced Entities
+				for(Entity refE : refEs) {
+					if(!refE.isSaving)
+						save(conn, refE);
+				}
+				*/
 				
-				Statement stmt = conn.createStatement();
-				stmt.execute(updateSQL);
-				
-				conn.commit();
 			}
+		}
+
+		private static void _insert(Connection conn, JoinTable jt, ObjectFieldProxy refFp, ObjectFieldProxy reffedFp) throws Exception {
+			Statement stmt = conn.createStatement();
+			QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			String sql = qh.getSaveScript(jt, refFp, reffedFp);
+			stmt.execute(sql );
+			
+		}
+
+		private static void _remove(Connection conn, JoinTable jt, ObjectFieldProxy refFp, ObjectFieldProxy reffedFp) throws Exception {
+			Statement stmt = conn.createStatement();
+			QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			String sql = qh.getDeleteScript(jt, refFp, reffedFp);
+			stmt.execute(sql );
+			
 		}
 	}
 	

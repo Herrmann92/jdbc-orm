@@ -2,6 +2,7 @@ package de.herrmanno.jdbcorm.tables;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -124,6 +125,12 @@ public class EntityHelper {
 		return getFields(entity.getClass(), entity);
 	}
 	
+	public static ObjectFieldProxy getFieldByName(Entity e, String name) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
+		List<ObjectFieldProxy> fields = getFields(e);
+		
+		return fields.stream().filter((fp) -> fp.name.equals(name)).findFirst().get();
+	}
+	
 	public static ObjectFieldProxy getPKFieldProxy(Entity entity) throws NoPrimaryKeyFoundException, IllegalArgumentException, IllegalAccessException, InstantiationException {
 		List<ObjectFieldProxy> fields = getFields(entity);
 		for(ObjectFieldProxy fp : fields) {
@@ -138,6 +145,15 @@ public class EntityHelper {
 				.stream()
 				.filter((fp) -> Entity.class.isAssignableFrom(fp.getType()))
 				.map((fp) -> (Entity)fp.getValue())
+				.collect(Collectors.toList());
+		
+		return fields;
+	}
+	
+	public static List<ObjectFieldProxy> getListReferencedFields(Entity e) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
+		List<ObjectFieldProxy> fields = getFields(e)
+				.stream()
+				.filter((fp) -> fp.getIsReference())
 				.collect(Collectors.toList());
 		
 		return fields;

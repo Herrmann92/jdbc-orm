@@ -1,6 +1,6 @@
 package de.herrmanno.jdbcorm.conf;
 
-import de.herrmanno.jdbcorm.migrationhelper.MigrationHelper;
+import de.herrmanno.jdbcorm.migrationhelper.MigrationHelper2;
 import de.herrmanno.jdbcorm.queryhelper.QueryHelper;
 import de.herrmanno.jdbcorm.typehelper.TypeHelper;
 
@@ -14,6 +14,6 @@ public /*abstract class*/ interface Conf {
 	
 	public TypeHelper getTypeHelper();
 	
-	public MigrationHelper getMigrationHelper();
+	public MigrationHelper2 getMigrationHelper();
 	
 }

@@ -1,4 +1,4 @@
-package de.herrmanno.jdbcorm.migrationhelper;
+package de.herrmanno.jdbcorm.migrationhelper.v1;
 
 import java.lang.reflect.Modifier;
 import java.sql.Connection;
@@ -19,8 +19,10 @@ import de.herrmanno.jdbcorm.tables.JoinTable;
 import de.herrmanno.jdbcorm.tables.StaticFieldProxy;
 import de.herrmanno.jdbcorm.util.ClassFinder;
 
+@Deprecated
 public abstract class MigrationHelper {
 
+	@SuppressWarnings("unchecked")
 	public void migrate(String _package) throws Exception {
 		
 		Queue<Class<? extends Entity>> classes = new ArrayDeque<Class<? extends Entity>>();
@@ -41,6 +43,7 @@ public abstract class MigrationHelper {
 					
 					Class<? extends Entity> c = classes.poll();
 					
+					/*
 					//------- Check if there are ForeinKeyField, which Classes aren't migrated yet
 					boolean doLater = false;
 					for(StaticFieldProxy refFp : EntityHelper.getForeignKeyFields(c)) {
@@ -56,11 +59,17 @@ public abstract class MigrationHelper {
 						classes.add(c);
 						continue;
 					}
+					*/
 					
 					
-					//TODO create stbl from references here and insert into Queue
 					migrate(conn, c);
 					migratedClasses.add(c);
+				}
+				
+				for(Class<?> clazz : migratedClasses) {
+					for(StaticFieldProxy fkField : EntityHelper.getForeignKeyFields((Class<? extends Entity>) clazz)) {
+						migrateForeignKey(conn, fkField);
+					}
 				}
 				
 				for(JoinTable jt : joinTables) {
@@ -93,5 +102,8 @@ public abstract class MigrationHelper {
 	protected abstract void migrate(Connection conn, Class<? extends Entity> c) throws Exception;
 	
 	protected abstract void migrate(Connection conn, JoinTable jt) throws Exception;
+
+	protected abstract void migrateForeignKey(Connection conn, StaticFieldProxy fkField) throws Exception;
 	
+	protected abstract void dropForeignKey(Connection conn, StaticFieldProxy fkField) throws Exception;
 }

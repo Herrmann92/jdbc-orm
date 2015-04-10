@@ -113,6 +113,12 @@ public class StaticFieldProxy {
 	}
 	
 	
+	@Override
+	public String toString() {
+		return "Class: " + getDeclaringClass() + " - Field: " + getName();
+	}
+	
+	
 
 
 

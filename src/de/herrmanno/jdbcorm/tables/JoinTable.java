@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 public class JoinTable {
 
-	private StaticFieldProxy fp1;
-	private StaticFieldProxy fp2;
+	StaticFieldProxy fp1;
+	StaticFieldProxy fp2;
 
 	public JoinTable(StaticFieldProxy fp) throws IllegalArgumentException, IllegalAccessException, InstantiationException {
 		fp1 = fp;
@@ -22,6 +22,10 @@ public class JoinTable {
 		 	fp_2.getDeclaringClass().getSimpleName() + "_" +
 		 	fp_2.getName();
         return className;
+	}
+	
+	public String getColumnName(StaticFieldProxy fp) {
+		return fp.getDeclaringClass().getSimpleName() + "_" + fp.getName();
 	}
 	
 	public StaticFieldProxy[] getFieldProxies() {
@@ -42,35 +46,17 @@ public class JoinTable {
 	public int hashCode() {
 		return 17 * getTableName().hashCode();
 	}
-
-	/*
-	String createPackageName(StaticFieldProxy fp1, StaticFieldProxy fp2) {
-		StaticFieldProxy fp_1 = sort(fp1, fp2)[0];
-		StaticFieldProxy fp_2 = sort(fp1, fp2)[1];
-		
-	    final String path = fp1.getType().getPackage().getName();
-	    return path;
-	}
-
-	String createFullClassName(StaticFieldProxy fp1, StaticFieldProxy fp2) {
-		StaticFieldProxy fp_1 = sort(fp1, fp2)[0];
-		StaticFieldProxy fp_2 = sort(fp1, fp2)[1];
-		
-		final String className = 
-		 	fp1.getDeclaringClass().getName() + "_" + 
-		 	fp1.getName() + "_" + 
-		 	fp2.getDeclaringClass().getName() + "_" +
-		 	fp2.getName();
-        final String path = fp1.getType().getPackage().getName();
-        final String fullClassName = path.replace('.', '/') + "/" + className;
-        
-        return fullClassName;
-	}
-	*/
 	
 	private StaticFieldProxy[] sort(StaticFieldProxy fp1, StaticFieldProxy fp2) {
 		StaticFieldProxy[] fpArr = new StaticFieldProxy[]{fp1, fp2};
 		Arrays.sort(fpArr, (f1, f2) -> f1.getName().compareTo(f2.getName()));
 		return fpArr;
+	}
+
+	public StaticFieldProxy getOtherFp(ObjectFieldProxy fp) {
+		if(fp == fp1)
+			return fp2;
+		else 
+			return fp1;
 	}
 }
