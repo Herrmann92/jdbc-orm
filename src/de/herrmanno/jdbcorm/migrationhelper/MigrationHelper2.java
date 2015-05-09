@@ -33,6 +33,7 @@ public abstract class MigrationHelper2 {
 		
 		try(Connection conn = ConnectorManager.getConnection()) {
 			Savepoint savePoint = conn.setSavepoint();
+			
 			try {
 				
 				conn.setAutoCommit(false);

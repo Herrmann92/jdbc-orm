@@ -9,7 +9,7 @@ import de.herrmanno.jdbcorm.tables.EntityHelper;
 public abstract class SQL_TypeHelper extends TypeHelper {
 
 	@Override
-	public String getSQLType(Class type) throws UnsupportedFieldTypeException {
+	public String getSQLType(Class<?> type) throws UnsupportedFieldTypeException {
 		if(type == int.class || type == Integer.class)
 			return getIntType();
 		if(type == long.class || type == Long.class)
@@ -73,5 +73,17 @@ public abstract class SQL_TypeHelper extends TypeHelper {
 			return null;
 		}
 	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T> T getJavaValue(Class<?> target, Object value) throws Exception {
+		if(target.equals(Date.class)) {
+			return (T) parseDate((String) value);
+		} else {
+			return (T) value;
+		}
+	}
+
+	protected abstract Date parseDate(String value);
 
 }

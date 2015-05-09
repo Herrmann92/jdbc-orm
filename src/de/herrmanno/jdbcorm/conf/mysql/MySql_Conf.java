@@ -8,6 +8,10 @@ import de.herrmanno.jdbcorm.typehelper.mysql.MySql_TypeHelper;
 
 public abstract class MySql_Conf extends BaseConfig {
 
+	private QueryHelper queryHelper = new MySql_QueryHelper();
+	private TypeHelper typeHelper = new MySql_TypeHelper();
+	
+	
 	@Override
 	public String getDriverClass() {
 		return "com.mysql.jdbc.Driver";
@@ -26,12 +30,12 @@ public abstract class MySql_Conf extends BaseConfig {
 	
 	@Override
 	public QueryHelper getQueryHelper() {
-		return new MySql_QueryHelper();
+		return queryHelper;
 	}
 	
 	@Override
 	public TypeHelper getTypeHelper() {
-		return new MySql_TypeHelper();
+		return typeHelper;
 	}
 
 	abstract protected String getHost();

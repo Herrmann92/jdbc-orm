@@ -6,4 +6,5 @@ public abstract class TypeHelper {
 	
 	public abstract String getSQLValue(Class<?> type, Object value) throws Exception;
 	
+	public abstract <T> T getJavaValue(Class<?> targetClass, Object value) throws Exception;
 }

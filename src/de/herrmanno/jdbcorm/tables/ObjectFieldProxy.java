@@ -1,5 +1,7 @@
 package de.herrmanno.jdbcorm.tables;
 
+import de.herrmanno.jdbcorm.ConnectorManager;
+
 
 
 public class ObjectFieldProxy extends StaticFieldProxy {
@@ -23,7 +25,8 @@ public class ObjectFieldProxy extends StaticFieldProxy {
 		return object.getId();
 	}
 	
-	void setValue(Object value) throws IllegalArgumentException, IllegalAccessException, NoSuchFieldException, SecurityException {
+	void setValue(Object value) throws Exception {
+		value = ConnectorManager.getConf().getTypeHelper().getJavaValue(type, value);
 		this.field.set(this.object, value);
 		this.value = value;
 	}

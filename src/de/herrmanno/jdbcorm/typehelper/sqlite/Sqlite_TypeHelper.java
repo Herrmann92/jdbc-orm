@@ -1,4 +1,4 @@
-package de.herrmanno.jdbcorm.typehelper.mysql;
+package de.herrmanno.jdbcorm.typehelper.sqlite;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -6,16 +6,16 @@ import java.util.Date;
 
 import de.herrmanno.jdbcorm.typehelper.SQL_TypeHelper;
 
-public class MySql_TypeHelper extends SQL_TypeHelper {
+public class Sqlite_TypeHelper extends SQL_TypeHelper {
 
 	@Override
 	protected String getIntType() {
-		return "INT(11)";
+		return "INTEGER";
 	}
 
 	@Override
 	protected String getLongType() {
-		return "INT(11)";
+		return "INTEGER";
 	}
 
 	@Override
@@ -45,7 +45,7 @@ public class MySql_TypeHelper extends SQL_TypeHelper {
 	protected String getDateValue(Object value){
 		return "'" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(value) + "'";
 	}
-	
+
 	@Override
 	protected Date parseDate(String value) {
 		try {
