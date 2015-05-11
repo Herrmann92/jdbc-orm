@@ -1,8 +1,8 @@
 package de.herrmanno.jdbcorm.conf.sqlite;
 
-import de.herrmanno.jdbcorm.ConnectorManager;
-import de.herrmanno.jdbcorm.SingleConnection;
+import de.herrmanno.jdbcorm.JDBCORM;
 import de.herrmanno.jdbcorm.conf.BaseConfig;
+import de.herrmanno.jdbcorm.connectionsupplier.SingletonConnection;
 import de.herrmanno.jdbcorm.queryhelper.QueryHelper;
 import de.herrmanno.jdbcorm.queryhelper.sqlite.Sqlite_QueryHelper;
 import de.herrmanno.jdbcorm.typehelper.TypeHelper;
@@ -16,13 +16,6 @@ public class Sqlite_Conf extends BaseConfig {
 	
 	public Sqlite_Conf(String location) {
 		this.location = location;
-		
-		if(location.equals(":memory:"))
-			try {
-				ConnectorManager.setConnectionSupplier(new SingleConnection());
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
 	}
 	
 	@Override

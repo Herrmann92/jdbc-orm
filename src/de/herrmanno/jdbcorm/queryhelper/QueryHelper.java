@@ -1,6 +1,6 @@
 package de.herrmanno.jdbcorm.queryhelper;
 
-import de.herrmanno.jdbcorm.ConnectorManager;
+import de.herrmanno.jdbcorm.JDBCORM;
 import de.herrmanno.jdbcorm.constants.CascadeType;
 import de.herrmanno.jdbcorm.tables.Entity;
 import de.herrmanno.jdbcorm.tables.JoinTable;
@@ -10,7 +10,7 @@ import de.herrmanno.jdbcorm.typehelper.TypeHelper;
 public abstract class QueryHelper {
 
 	protected static TypeHelper getTypeHelper() {
-		return ConnectorManager.getConf().getTypeHelper();
+		return JDBCORM.getConf().getTypeHelper();
 	}
 	
 	public abstract String getCreateScript(Class<? extends Entity> c) throws Exception;

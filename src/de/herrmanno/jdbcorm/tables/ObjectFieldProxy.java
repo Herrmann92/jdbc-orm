@@ -1,6 +1,6 @@
 package de.herrmanno.jdbcorm.tables;
 
-import de.herrmanno.jdbcorm.ConnectorManager;
+import de.herrmanno.jdbcorm.JDBCORM;
 
 
 
@@ -26,7 +26,7 @@ public class ObjectFieldProxy extends StaticFieldProxy {
 	}
 	
 	void setValue(Object value) throws Exception {
-		value = ConnectorManager.getConf().getTypeHelper().getJavaValue(type, value);
+		value = JDBCORM.getConf().getTypeHelper().getJavaValue(type, value);
 		this.field.set(this.object, value);
 		this.value = value;
 	}

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import de.herrmanno.jdbcorm.ConnectorManager;
+import de.herrmanno.jdbcorm.JDBCORM;
 import de.herrmanno.jdbcorm.constants.CascadeType;
 import de.herrmanno.jdbcorm.tables.Entity;
 import de.herrmanno.jdbcorm.tables.EntityHelper;
@@ -31,7 +31,7 @@ public abstract class MigrationHelper2 {
 		
 		Set<JoinTable> joinTables = new HashSet<JoinTable>();
 		
-		try(Connection conn = ConnectorManager.getConnection()) {
+		try(Connection conn = JDBCORM.getConnection()) {
 			Savepoint savePoint = conn.setSavepoint();
 			
 			try {

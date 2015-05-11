@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import de.herrmanno.jdbcorm.ConnectorManager;
+import de.herrmanno.jdbcorm.JDBCORM;
 import de.herrmanno.jdbcorm.exceptions.EmptyResultSetException;
 import de.herrmanno.jdbcorm.exceptions.NoConfigDefinedException;
 import de.herrmanno.jdbcorm.queryhelper.QueryHelper;
@@ -83,7 +83,7 @@ public class Handler {
 		static <T extends Entity> T load(Class<T> clazz, String where, int depth, List<Entity> loadedEntities) throws Exception {
 			T instance = clazz.newInstance();
 			String sql = "SELECT * FROM " + EntityHelper.getTableName(clazz) + " WHERE " + where;
-			try(Connection conn = ConnectorManager.getConnection()) {
+			try(Connection conn = JDBCORM.getConnection()) {
 				Statement stmt = conn.createStatement();
 				ResultSet rs = stmt.executeQuery(sql);
 				
@@ -155,7 +155,7 @@ public class Handler {
 			
 			List<T> list = new ArrayList<T>();
 			
-			try(Connection conn = ConnectorManager.getConnection()) {
+			try(Connection conn = JDBCORM.getConnection()) {
 				Statement stmt = conn.createStatement();
 				ResultSet rs = stmt.executeQuery(sql);
 				
@@ -256,7 +256,7 @@ public class Handler {
 			
 			List<Long> ids = new ArrayList<Long>();
 			
-			try(Connection conn = ConnectorManager.getConnection()) {
+			try(Connection conn = JDBCORM.getConnection()) {
 				Statement stmt = conn.createStatement();
 				ResultSet rs = stmt.executeQuery(sql);
 				
@@ -277,7 +277,7 @@ public class Handler {
 	private static class Saver {
 		
 		static void save(Entity e) throws Exception {
-			try(Connection conn = ConnectorManager.getConnection()) {
+			try(Connection conn = JDBCORM.getConnection()) {
 				Savepoint savePoint = conn.setSavepoint();
 				conn.setAutoCommit(false);
 				try {
@@ -308,7 +308,7 @@ public class Handler {
 				
 			Statement stmt = conn.createStatement();
 			
-			QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			QueryHelper qh = JDBCORM.getConf().getQueryHelper();
 			String saveSQL = qh.getSaveScript(e);
 			String getIdSQL = qh.getLastIdSelectScript(e.getClass());
 			
@@ -328,7 +328,7 @@ public class Handler {
 
 		private static void _update(Connection conn, Entity e) throws Exception {
 								
-			QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			QueryHelper qh = JDBCORM.getConf().getQueryHelper();
 			String updateSQL = qh.getUpdateScript(e);
 			
 			Statement stmt = conn.createStatement();
@@ -403,7 +403,7 @@ public class Handler {
 
 		private static void _insert(Connection conn, JoinTable jt, ObjectFieldProxy refFp, ObjectFieldProxy reffedFp) throws Exception {
 			Statement stmt = conn.createStatement();
-			QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			QueryHelper qh = JDBCORM.getConf().getQueryHelper();
 			String sql = qh.getSaveScript(jt, refFp, reffedFp);
 			stmt.execute(sql );
 			
@@ -411,7 +411,7 @@ public class Handler {
 
 		private static void _remove(Connection conn, JoinTable jt, ObjectFieldProxy refFp, ObjectFieldProxy reffedFp) throws Exception {
 			Statement stmt = conn.createStatement();
-			QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			QueryHelper qh = JDBCORM.getConf().getQueryHelper();
 			String sql = qh.getDeleteScript(jt, refFp, reffedFp);
 			stmt.execute(sql );
 			
@@ -421,8 +421,8 @@ public class Handler {
 	
 	private static class Deleter {
 		static void delete(Entity e) throws Exception {
-			try(Connection conn = ConnectorManager.getConnection()) {
-				QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			try(Connection conn = JDBCORM.getConnection()) {
+				QueryHelper qh = JDBCORM.getConf().getQueryHelper();
 				String deleteSQL = qh.getDeleteScript(e);
 				
 				Statement stmt = conn.createStatement();
@@ -432,8 +432,8 @@ public class Handler {
 		}
 		
 		static void deleteAll(Class<? extends Entity> c) throws Exception {
-			try(Connection conn = ConnectorManager.getConnection()) {
-				QueryHelper qh = ConnectorManager.getConf().getQueryHelper();
+			try(Connection conn = JDBCORM.getConnection()) {
+				QueryHelper qh = JDBCORM.getConf().getQueryHelper();
 				String deleteSQL = qh.getDeleteScript(c);
 				
 				Statement stmt = conn.createStatement();

@@ -4,21 +4,21 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.util.function.Supplier;
 
 import de.herrmanno.jdbcorm.conf.Conf;
+import de.herrmanno.jdbcorm.connectionsupplier.DefaultConnection;
 import de.herrmanno.jdbcorm.exceptions.NoConfigDefinedException;
 
-public class ConnectorManager {
+public class JDBCORM {
 
 	static private Conf conf;
-	static private Supplier<Connection> connectionSupplier = null;
+	static private Supplier<Connection> connectionSupplier = new DefaultConnection();
 	
 	static public void setConf(Conf conf) {
-		ConnectorManager.conf = conf;
+		JDBCORM.conf = conf;
 	} 
 	
 	public static Conf getConf() {
@@ -26,19 +26,9 @@ public class ConnectorManager {
 	}
 	
 	static public Connection getConnection() throws SQLException, ClassNotFoundException, NoConfigDefinedException {
-		if(conf == null) {
-			throw new NoConfigDefinedException();
-		}
 		
-		Connection conn = null;
-		if(connectionSupplier == null) {
-			Class.forName(conf.getDriverClass());
-			conn = DriverManager.getConnection(conf.getConnectionString());
-		} else {
-			conn = connectionSupplier.get();
-		}
+		Connection conn = connectionSupplier.get();
 		
-		//return conn;
 		ConnectionProxy p = new ConnectionProxy(conn);
 		return (Connection) Proxy.newProxyInstance(
 				Connection.class.getClassLoader(),
@@ -48,7 +38,7 @@ public class ConnectorManager {
 	}
 	
 	public static void setConnectionSupplier(Supplier<Connection> supplier) {
-		ConnectorManager.connectionSupplier = supplier;
+		JDBCORM.connectionSupplier = supplier;
 	}
 
 	static class ConnectionProxy implements InvocationHandler {

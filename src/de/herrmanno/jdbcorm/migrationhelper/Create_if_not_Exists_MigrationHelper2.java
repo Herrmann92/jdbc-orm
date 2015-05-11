@@ -3,7 +3,7 @@ package de.herrmanno.jdbcorm.migrationhelper;
 import java.sql.Connection;
 import java.sql.Statement;
 
-import de.herrmanno.jdbcorm.ConnectorManager;
+import de.herrmanno.jdbcorm.JDBCORM;
 import de.herrmanno.jdbcorm.conf.Conf;
 import de.herrmanno.jdbcorm.constants.CascadeType;
 import de.herrmanno.jdbcorm.tables.Entity;
@@ -33,7 +33,7 @@ public class Create_if_not_Exists_MigrationHelper2 extends MigrationHelper2 {
 
 	@Override
 	protected void createTable(Connection conn, Class<? extends Entity> c) throws Exception {
-		Conf conf = ConnectorManager.getConf();
+		Conf conf = JDBCORM.getConf();
 		Statement stmt = conn.createStatement();
 		
 		String createsql = conf.getQueryHelper().getCreateScript(c);
@@ -42,7 +42,7 @@ public class Create_if_not_Exists_MigrationHelper2 extends MigrationHelper2 {
 
 	@Override
 	protected void createTable(Connection conn, JoinTable jt) throws Exception {
-		Conf conf = ConnectorManager.getConf();
+		Conf conf = JDBCORM.getConf();
 		Statement stmt = conn.createStatement();
 		
 		String createsql = conf.getQueryHelper().getCreateScript(jt);
@@ -59,7 +59,7 @@ public class Create_if_not_Exists_MigrationHelper2 extends MigrationHelper2 {
 
 	@Override
 	protected void createForeignKey(Connection conn, Class<? extends Entity> c, String fieldName, Class<? extends Entity> refC, CascadeType onDeleteType, CascadeType onUpdateType) throws Exception {
-		Conf conf = ConnectorManager.getConf();
+		Conf conf = JDBCORM.getConf();
 		String sql = conf.getQueryHelper().getCreateForeignKeySQL(c, fieldName, refC, onDeleteType, onUpdateType);
 		Statement stmt = conn.createStatement();
 		stmt.execute(sql);
